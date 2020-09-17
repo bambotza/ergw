@@ -1,0 +1,96 @@
+# -- build-environment --
+# see https://docs.docker.com/engine/userguide/eng-image/multistage-build/
+
+FROM alpine:3.12 AS otp-env
+
+ENV OTP_VERSION="23.99.99" \
+    REBAR3_VERSION="3.14.1"
+
+LABEL org.opencontainers.image.version=$OTP_VERSION
+
+RUN set -xe \
+	&& apk add --no-cache --virtual .fetch-deps \
+		curl \
+		ca-certificates \
+	&& apk add --no-cache --virtual .build-deps \
+		dpkg-dev dpkg \
+		gcc \
+		g++ \
+		libc-dev \
+		linux-headers \
+		make \
+		autoconf \
+		ncurses-dev \
+		openssl-dev \
+		unixodbc-dev \
+		lksctp-tools-dev \
+		git \
+		tar \
+	&& curl -fSL -O https://raw.githubusercontent.com/kerl/kerl/master/kerl \
+	&& install -v ./kerl /usr/local/bin/
+
+RUN set -xe \
+	&& BEAMJIT_COMMIT="445f0fd" \
+	&& kerl build git https://github.com/erlang/otp.git master otp-24 \
+	&& kerl install otp-24 otp-24 \
+	&& . ./otp-24/activate
+
+RUN set -xe \
+	&& . /otp-24/activate \
+	&& REBAR3_DOWNLOAD_URL="https://github.com/erlang/rebar3/archive/${REBAR3_VERSION}.tar.gz" \
+	&& REBAR3_DOWNLOAD_SHA256="b01275b6cbdb354dcf9ed686fce2b5f9dfdd58972ded9e970e31b9215a8521f2" \
+	&& curl -fSL -o rebar3-src.tar.gz "$REBAR3_DOWNLOAD_URL" \
+	&& echo "${REBAR3_DOWNLOAD_SHA256}  rebar3-src.tar.gz" | sha256sum -c - \
+	&& mkdir -p /usr/src/rebar3-src \
+	&& tar -xzf rebar3-src.tar.gz -C /usr/src/rebar3-src --strip-components=1 \
+	&& rm rebar3-src.tar.gz \
+	&& cd /usr/src/rebar3-src \
+	&& HOME=$PWD ./bootstrap \
+	&& install -v ./rebar3 /usr/local/bin/ \
+	&& rm -rf /usr/src/rebar3-src \
+	&& apk add --virtual .erlang-rundeps \
+		lksctp-tools \
+		ca-certificates
+
+CMD ["erl"]
+
+FROM otp-env AS build-env
+
+WORKDIR /build
+RUN     apk update && apk --no-cache upgrade && \
+		apk --no-cache add \
+			gcc \
+			git \
+			libc-dev libc-utils \
+			libgcc \
+			linux-headers \
+			make bash \
+			musl-dev musl-utils \
+			ncurses-dev \
+			pcre2 \
+			pkgconf \
+			scanelf \
+			zlib
+
+ADD     . /build
+RUN     . /otp-24/activate \
+	&& rebar3 as prod release
+
+# -- runtime image --
+
+FROM alpine:3.12
+
+WORKDIR /
+RUN     apk update && \
+		apk --no-cache upgrade && \
+		apk --no-cache add libstdc++ zlib ncurses-libs libcrypto1.1 lksctp-tools tini
+COPY    docker/docker-entrypoint.sh /
+COPY    config/ergw-c-node.config /etc/ergw-c-node/
+
+RUN     mkdir -p /var/lib/ergw/ && \
+		touch /var/lib/ergw/ergw.state
+
+COPY    --from=build-env /build/_build/prod/rel/ /opt/
+
+ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
+CMD     ["/opt/ergw-c-node/bin/ergw-c-node", "foreground"]
