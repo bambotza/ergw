@@ -28,7 +28,7 @@ jobs:
       run: rebar3 compile
     - name: Run tests
       run: |
-           sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+           cat /proc/sys/net/ipv6/conf/all/disable_ipv6
            ip addr add fd96:dcd2:efdb:41c3::10/64 dev lo
            ip addr add fd96:dcd2:efdb:41c3::11/64 dev lo
            ip addr add fd96:dcd2:efdb:41c3::12/64 dev lo
