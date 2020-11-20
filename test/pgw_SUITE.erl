@@ -896,7 +896,7 @@ end_per_testcase(Config) ->
     stop_gtpc_server(),
 
     PoolId = [<<"pool-A">>, ipv4, "10.180.0.1"],
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
 
     AppsCfg = proplists:get_value(aaa_cfg, Config),
     ok = application:set_env(ergw_aaa, apps, AppsCfg),
@@ -1054,7 +1054,7 @@ create_session_request_gy_fail() ->
 create_session_request_gy_fail(Config) ->
     PoolId = [<<"pool-A">>, ipv4, "10.180.0.1"],
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 0),
 
     create_session(gy_fail, Config),
@@ -1062,7 +1062,7 @@ create_session_request_gy_fail(Config) ->
     ok = meck:wait(?HUT, terminate, '_', ?TIMEOUT),
     ?equal(0, active_contexts()),
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 0),
 
     meck_validate(Config),
@@ -1314,12 +1314,12 @@ simple_session_request() ->
 simple_session_request(Config) ->
     PoolId = [<<"pool-A">>, ipv4, "10.180.0.1"],
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 0),
 
     {GtpC, _, _} = create_session(ipv4, Config),
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65533),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize - 1),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 1),
 
     delete_session(GtpC),
@@ -1329,7 +1329,7 @@ simple_session_request(Config) ->
     ok = meck:wait(?HUT, terminate, '_', ?TIMEOUT),
     ?equal(0, active_contexts()),
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 0),
 
     [SER|_] = lists:filter(
@@ -1464,12 +1464,12 @@ simple_session_request_cp_teid() ->
 simple_session_request_cp_teid(Config) ->
     PoolId = [<<"pool-A">>, ipv4, "10.180.0.1"],
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 0),
 
     {GtpC, _, _} = create_session(ipv4, Config),
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65533),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize - 1),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 1),
 
     delete_session(GtpC),
@@ -1477,7 +1477,7 @@ simple_session_request_cp_teid(Config) ->
     ?equal([], outstanding_requests()),
     ok = meck:wait(?HUT, terminate, '_', ?TIMEOUT),
 
-    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, 65534),
+    ?match_metric(prometheus_gauge, ergw_local_pool_free, PoolId, ?IPv4PoolSize),
     ?match_metric(prometheus_gauge, ergw_local_pool_used, PoolId, 0),
 
     [SER|_] = lists:filter(
@@ -2441,8 +2441,8 @@ session_options(Config) ->
 		   'Password' => '_',
 
 		   %% TODO check 'PDP-Context-Type' => primary,
-		   'Framed-IP-Address' => {10, 180, '_', '_'},
-		   'Framed-IPv6-Prefix' => {{16#8001, 0, 1, '_', '_', '_', '_', '_'},64},
+		   'Framed-IP-Address' => {10, '_', '_', '_'},
+		   'Framed-IPv6-Prefix' => {{16#8001, 0, '_', '_', '_', '_', '_', '_'},64},
 		   'Framed-Pool' => <<"pool-A">>,
 		   'Framed-IPv6-Pool' => <<"pool-A">>,
 
@@ -3353,8 +3353,8 @@ simple_ocs(Config) ->
 	  'Diameter-Session-Id' => '_',
 	  'ECGI' => '_',
 	  'Event-Trigger' => '_',
-	  'Framed-IP-Address' => {10, 180, '_', '_'},
-	  %% 'Framed-IPv6-Prefix' => {{16#8001, 0, 1, '_', '_', '_', '_', '_'},64},
+	  'Framed-IP-Address' => {10, '_', '_', '_'},
+	  %% 'Framed-IPv6-Prefix' => {{16#8001, 0, '_', '_', '_', '_', '_', '_'},64},
 	  'Framed-Protocol' => 'GPRS-PDP-Context',
 	  'Multi-Session-Id' => '_',
 	  'NAS-Identifier' => '_',
