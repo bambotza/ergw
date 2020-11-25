@@ -197,7 +197,14 @@ The label `type` is the Termination Causes types. For Termination causes the fol
  * link_broken
  * upf_failure
  * remote_failure
- * inactivity_timeout
+ * cp_inactivity_timeout
+ * up_inactivity_timeout
+ * aaa_asr
+ * aaa_error
+ * aaa_req_timeout
+ * aaa_conn_error
+ * aaa_rate_limit
+ * aaa_ocs_hold_end
  * peer_restart
 
 The HTTP API exports the metrics in Prometheus format at `/metrics`:
