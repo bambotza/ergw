@@ -237,7 +237,7 @@ handle_request(ReqKey,
 handle_request(ReqKey,
 	       #gtp{type = delete_pdp_context_request, ie = _IEs} = Request,
 	       _Resent, _State, #{left_tunnel := LeftTunnel} = Data) ->
-    ergw_gtp_gsn_lib:close_context(normal, Data),
+    ergw_gtp_gsn_lib:close_context({?MODULE, normal}, Data),
     Response = response(delete_pdp_context_response, LeftTunnel, request_accepted),
     gtp_context:send_response(ReqKey, Request, Response),
     {next_state, shutdown, Data};

@@ -228,7 +228,7 @@ handle_event(cast, _Request, _State, _Data) ->
 handle_event(info, {'DOWN', _MonitorRef, Type, Pid, _Info},
 	     State, #data{dp_node = Pid} = Data)
   when Type == process; Type == pfcp ->
-    close_pdn_context(upf_failure, State, Data),
+    close_pdn_context({?MODULE, upf_failure}, State, Data),
     {next_state, shutdown, Data};
 
 handle_event(info, #aaa_request{procedure = {_, 'RAR'}} = Request, shutdown, _Data) ->
@@ -237,7 +237,7 @@ handle_event(info, #aaa_request{procedure = {_, 'RAR'}} = Request, shutdown, _Da
 
 handle_event(info, #aaa_request{procedure = {_, 'ASR'}} = Request, State, Data) ->
     ergw_aaa_session:response(Request, ok, #{}, #{}),
-    close_pdn_context(administrative, State, Data),
+    close_pdn_context({?MODULE, asr}, State, Data),
     {next_state, shutdown, Data};
 
 handle_event(info, #aaa_request{procedure = {gx, 'RAR'},
@@ -325,12 +325,12 @@ handle_event(info, #aaa_request{procedure = {gy, 'RAR'},
     keep_state_and_data;
 
 %% Enable AAA to provide reason for session stop
-handle_event(internal, {session, {stop, Reason}, _Session}, State, Data) ->
-    close_pdn_context(Reason, State, Data),
+handle_event(internal, {session, {stop, {_, _} = HandlerAndReason}, _Session}, State, Data) ->
+    close_pdn_context(HandlerAndReason, State, Data),
     {next_state, shutdown, Data};
 
 handle_event(internal, {session, stop, _Session}, State, Data) ->
-    close_pdn_context(normal, State, Data),
+    close_pdn_context({?MODULE, normal}, State, Data),
     {next_state, shutdown, Data};
 
 handle_event(internal, {session, {update_credits, _} = CreditEv, _}, _State,
@@ -508,7 +508,7 @@ ccr_initial(Session, API, SessionOpts, ReqOpts) ->
 	    {error, {'CCR-Initial', Fail}}
     end.
 
-close_pdn_context(Reason, run, #data{pfcp = PCtx, session = Session}) ->
+close_pdn_context({Handler, Reason}, run, #data{pfcp = PCtx, session = Session}) ->
     URRs = ergw_pfcp_context:delete_session(Reason, PCtx),
 
     %% TODO: Monitors, AAA over SGi
@@ -531,7 +531,7 @@ close_pdn_context(Reason, run, #data{pfcp = PCtx, session = Session}) ->
     GyReqServices = ergw_gsn_lib:gy_credit_report(Online),
     ergw_gsn_lib:process_online_charging_events(ChargeEv, GyReqServices, Session, ReqOpts),
     ergw_gsn_lib:process_offline_charging_events(ChargeEv, Offline, Now, Session),
-    ergw_prometheus:termination_cause(?FUNCTION_NAME, Reason),
+    ergw_prometheus:termination_cause({?FUNCTION_NAME, Reason, Handler}),
 
     ok;
 close_pdn_context(_Reason, _State, _Data) ->

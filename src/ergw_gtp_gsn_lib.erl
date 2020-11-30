@@ -224,10 +224,10 @@ triggered_charging_event(ChargeEv, Now, Request,
 usage_report(URRActions, UsageReport, #{pfcp := PCtx, 'Session' := Session}) ->
     ergw_gtp_gsn_session:usage_report(URRActions, UsageReport, PCtx, Session).
 
-close_context(Reason, #{pfcp := PCtx, 'Session' := Session}) ->
+close_context({Handler, Reason}, #{pfcp := PCtx, 'Session' := Session}) ->
     UsageReport = ergw_pfcp_context:delete_session(Reason, PCtx),
     ergw_gtp_gsn_session:close_context(Reason, UsageReport, PCtx, Session),
-    ergw_prometheus:termination_cause(?FUNCTION_NAME, Reason),
+    ergw_prometheus:termination_cause({?FUNCTION_NAME, Reason, Handler}),
     ok.
 
 %%====================================================================

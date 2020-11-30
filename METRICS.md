@@ -26,7 +26,7 @@ The following metrics exist:
 | gtp\_u\_socket\_messages\_processed\_total      | counter   | name, direction, version, type                 | Total number of GTP message processed on socket          |
 | ergw\_local\_pool\_free                         | gauge     | name, type, id                                 | Number of free IPs                                       |
 | ergw\_local\_pool\_used                         | gauge     | name, type, id                                 | Number of used IPs                                       |
-| termination\_cause\_total                       | counter   | name, type                                     | Total number of termination causes                       |
+| termination\_cause\_total                       | counter   | name, type, handler                            | Total number of termination causes                       |
 
 The label `name` is is taken from the configuration of the GTP socket and PeerIP is the IP address of
 the peer GSN.
@@ -199,13 +199,14 @@ The label `type` is the Termination Causes types. For Termination causes the fol
  * remote_failure
  * cp_inactivity_timeout
  * up_inactivity_timeout
- * aaa_asr
- * aaa_error
- * aaa_req_timeout
- * aaa_conn_error
- * aaa_rate_limit
- * aaa_ocs_hold_end
+ * asr
+ * error
+ * req_timeout
+ * conn_error
+ * rate_limit
+ * ocs_hold_end
  * peer_restart
+ * peer_reject
 
 The HTTP API exports the metrics in Prometheus format at `/metrics`:
 

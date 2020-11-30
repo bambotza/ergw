@@ -383,7 +383,7 @@ handle_request(ReqKey,
     case match_tunnel(?'S5/S8-C SGW', LeftTunnel, FqTEID) of
 	ok ->
 	    process_secondary_rat_usage_data_reports(IEs, Context, Session),
-	    ergw_gtp_gsn_lib:close_context(normal, Data),
+	    ergw_gtp_gsn_lib:close_context({?MODULE, normal}, Data),
 	    Response = response(delete_session_response, LeftTunnel, request_accepted),
 	    gtp_context:send_response(ReqKey, Request, Response),
 	    {next_state, shutdown, Data};
@@ -423,12 +423,12 @@ handle_response(CommandReqKey,
        true ->
 	    ?LOG(error, "Update Bearer Request failed with ~p/~p",
 			[Cause, BearerCause]),
-	    delete_context(undefined, link_broken, State, DataNew)
+	    delete_context(undefined, {?MODULE, link_broken}, State, DataNew)
     end;
 
 handle_response(_, timeout, #gtp{type = update_bearer_request}, connected = State, Data) ->
     ?LOG(error, "Update Bearer Request failed with timeout"),
-    delete_context(undefined, link_broken, State, Data);
+    delete_context(undefined, {?MODULE, link_broken}, State, Data);
 
 handle_response({From, TermCause}, timeout, #gtp{type = delete_bearer_request},
 		_State, Data) ->

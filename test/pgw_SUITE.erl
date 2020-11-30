@@ -4771,6 +4771,16 @@ gy_async_stop(Config) ->
 
     ?equal([], outstanding_requests()),
     ok = meck:wait(?HUT, terminate, '_', ?TIMEOUT),
+
+    MfrId = [close_context, peer_reject, ergw_aaa_static],
+    CauseTotal = get_metric(prometheus_counter, termination_cause_total, MfrId, 0),
+    case CauseTotal >= 1 of
+        true ->
+            ct:pal("termination_cause_total [close_context, peer_reject, ergw_aaa_static]: ~p", [CauseTotal]);
+        false ->
+            ct:fail("termination_cause_total error - wrong total: ~p~n", [CauseTotal])
+    end,
+
     meck_validate(Config),
     ok.
 

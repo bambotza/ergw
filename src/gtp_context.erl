@@ -446,7 +446,7 @@ handle_event(cast, {handle_response, ReqInfo, Request, Response0}, State,
 
 handle_event(info, #aaa_request{procedure = {_, 'ASR'}} = Request, State, Data) ->
     ergw_aaa_session:response(Request, ok, #{}, #{}),
-    delete_context(undefined, aaa_asr, State, Data);
+    delete_context(undefined, asr, State, Data);
 
 handle_event(info, #aaa_request{procedure = {gx, 'RAR'},
 				events = Events} = Request,
@@ -555,11 +555,11 @@ handle_event(internal, {session, {update_credits, _} = CreditEv, _}, _State,
     {keep_state, Data#{pfcp := PCtx, pcc := PCC}};
 
 %% Enable AAA to provide reason for session stop
-handle_event(internal, {session, {stop, Reason}, _Session}, State, Data) ->
-     delete_context(undefined, Reason, State, Data);
+handle_event(internal, {session, {stop, {_, _} = HandlerAndReason}, _Session}, State, Data) ->
+     delete_context(undefined, HandlerAndReason, State, Data);
 
 handle_event(internal, {session, stop, _Session}, State, Data) ->
-     delete_context(undefined, aaa_error, State, Data);
+     delete_context(undefined, error, State, Data);
 
 handle_event(internal, {session, Ev, _}, _State, _Data) ->
     ?LOG(error, "unhandled session event: ~p", [Ev]),
@@ -869,11 +869,15 @@ fteid_tunnel_side_f(#f_teid{ipv4 = IPv4, ipv6 = IPv6, teid = TEID},
 fteid_tunnel_side_f(FqTEID, {_, _, Iter}) ->
     fteid_tunnel_side_f(FqTEID, maps:next(Iter)).
 
+close_context(Side, {_, _} = TermCause, State, #{interface := Interface} = Data) ->
+    Interface:close_context(Side, TermCause, State, Data);
 close_context(Side, TermCause, State, #{interface := Interface} = Data) ->
-    Interface:close_context(Side, TermCause, State, Data).
+    Interface:close_context(Side, {Interface, TermCause}, State, Data).
 
+delete_context(From, {_, _} = TermCause, State, #{interface := Interface} = Data) ->
+    Interface:delete_context(From, TermCause, State, Data);
 delete_context(From, TermCause, State, #{interface := Interface} = Data) ->
-    Interface:delete_context(From, TermCause, State, Data).
+    Interface:delete_context(From, {Interface, TermCause}, State, Data).
 
 %%====================================================================
 %% asynchrounus usage reporting
